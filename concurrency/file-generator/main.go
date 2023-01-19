@@ -43,6 +43,9 @@ func GenerateFeed(db *sql.DB) {
 		feedCollection = append(feedCollection, f)
 		time.Sleep(1 * time.Microsecond)
 	}
+
+	// TODO generate CSV file using concurrency patterns
+	// Ref: https://betterprogramming.pub/file-processing-using-concurrency-with-golang-9e08920fab63
 }
 
 func checkErr(err error) {
