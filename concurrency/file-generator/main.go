@@ -5,6 +5,7 @@ import (
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
+	"time"
 )
 
 type Feed struct {
@@ -27,6 +28,10 @@ func main() {
 	checkErr(err)
 	fmt.Println(version)
 
+	GenerateFeed(db)
+}
+
+func GenerateFeed(db *sql.DB) {
 	rows, err := db.Query("SELECT * FROM `main`.`feed`")
 	checkErr(err)
 
@@ -36,6 +41,7 @@ func main() {
 		err = rows.Scan(&f.IdItem, &f.IdOffer, &f.Price, &f.Title, &f.Brand, &f.Category, &f.InPromo)
 		checkErr(err)
 		feedCollection = append(feedCollection, f)
+		time.Sleep(1 * time.Microsecond)
 	}
 }
 
