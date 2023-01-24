@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func BenchmarkProcessFile(b *testing.B) {
+func BenchmarkGenerateFeedSequentially(b *testing.B) {
 	b.ResetTimer()
 	db, err := sql.Open("sqlite3", "file:./file-generator-db")
 	defer db.Close()
@@ -14,6 +14,6 @@ func BenchmarkProcessFile(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		GenerateFeed(db)
+		GenerateFeedSequentially(db)
 	}
 }

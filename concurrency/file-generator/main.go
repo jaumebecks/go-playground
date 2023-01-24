@@ -8,12 +8,36 @@ import (
 	"time"
 )
 
-type Feed struct {
+type MasterFeed struct {
+	Rows []MasterFeedRow
+}
+
+func (m *MasterFeed) AddRow(r MasterFeedRow) {
+	m.Rows = append(m.Rows, r)
+}
+
+type MasterFeedRow struct {
 	IdItem   int
 	IdOffer  int
 	Price    float64
 	Title    string
 	Brand    string
+	Category string
+	InPromo  bool
+}
+
+type SpecificFeed1 struct {
+	Rows []SpecificFeed1Row
+}
+
+func (f *SpecificFeed1) AddRow(r SpecificFeed1Row) {
+	f.Rows = append(f.Rows, r)
+}
+
+type SpecificFeed1Row struct {
+	Id       string
+	Price    float64
+	Title    string
 	Category string
 	InPromo  bool
 }
@@ -28,24 +52,42 @@ func main() {
 	checkErr(err)
 	fmt.Println(version)
 
-	GenerateFeed(db)
+	GenerateFeedSequentially(db)
 }
 
-func GenerateFeed(db *sql.DB) {
+// GenerateFeedSequentially TODO generate CSV file using concurrency patterns
+// Ref: https://betterprogramming.pub/file-processing-using-concurrency-with-golang-9e08920fab63
+func GenerateFeedSequentially(db *sql.DB) {
 	rows, err := db.Query("SELECT * FROM `main`.`feed`")
 	checkErr(err)
 
-	var feedCollection []Feed
+	masterFeed := MasterFeed{}
 	for rows.Next() {
-		var f Feed
-		err = rows.Scan(&f.IdItem, &f.IdOffer, &f.Price, &f.Title, &f.Brand, &f.Category, &f.InPromo)
+		var r MasterFeedRow
+		err = rows.Scan(&r.IdItem, &r.IdOffer, &r.Price, &r.Title, &r.Brand, &r.Category, &r.InPromo)
 		checkErr(err)
-		feedCollection = append(feedCollection, f)
+		masterFeed.AddRow(r)
+		// time.Sleep(1 * time.Microsecond)
+	}
+
+	_ = GenerateSpecificFeed1Sequentially(masterFeed)
+}
+
+func GenerateSpecificFeed1Sequentially(masterFeed MasterFeed) SpecificFeed1 {
+	feed := SpecificFeed1{}
+	for _, row := range masterFeed.Rows {
+		r := SpecificFeed1Row{
+			Id:       fmt.Sprintf("online:es:ES:%d:%d", row.IdItem, row.IdOffer),
+			Price:    row.Price,
+			Title:    fmt.Sprintf("%s - %s", row.Title, row.Brand),
+			Category: row.Category,
+			InPromo:  row.InPromo,
+		}
+		feed.AddRow(r)
 		time.Sleep(1 * time.Microsecond)
 	}
 
-	// TODO generate CSV file using concurrency patterns
-	// Ref: https://betterprogramming.pub/file-processing-using-concurrency-with-golang-9e08920fab63
+	return feed
 }
 
 func checkErr(err error) {
