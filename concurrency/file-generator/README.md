@@ -15,3 +15,8 @@ Given a dummy feed data source, create a CSV from its data iteration
 | int (PK auto-increment) | int      | float | string | string | string   | boolean  |
 
 
+### Benchmark
+
+```shell
+go test -bench=. file-generator -benchtime=10x
+```
