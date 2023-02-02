@@ -2,9 +2,11 @@ package main
 
 import (
 	"database/sql"
+	"encoding/csv"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
+	"os"
 	"time"
 )
 
@@ -50,9 +52,16 @@ func main() {
 	var version string
 	err = db.QueryRow("SELECT SQLITE_VERSION()").Scan(&version)
 	checkErr(err)
-	fmt.Println(version)
+	log.Printf("SQLite Version -> %s", version)
 
 	GenerateFeedSequentially(db)
+}
+
+func track(name string) func() {
+	start := time.Now()
+	return func() {
+		log.Printf("%s, execution time %s\n", name, time.Since(start))
+	}
 }
 
 // GenerateFeedSequentially TODO generate CSV file using concurrency patterns
@@ -61,20 +70,33 @@ func GenerateFeedSequentially(db *sql.DB) {
 	rows, err := db.Query("SELECT * FROM `main`.`feed`")
 	checkErr(err)
 
+	masterFeed := GenerateMasterFeed(rows, err)
+	_ = GenerateSpecificFeed1Sequentially(masterFeed)
+}
+
+func GenerateMasterFeed(rows *sql.Rows, err error) MasterFeed {
 	masterFeed := MasterFeed{}
+
 	for rows.Next() {
 		var r MasterFeedRow
 		err = rows.Scan(&r.IdItem, &r.IdOffer, &r.Price, &r.Title, &r.Brand, &r.Category, &r.InPromo)
 		checkErr(err)
 		masterFeed.AddRow(r)
-		// time.Sleep(1 * time.Microsecond)
 	}
 
-	_ = GenerateSpecificFeed1Sequentially(masterFeed)
+	return masterFeed
 }
 
 func GenerateSpecificFeed1Sequentially(masterFeed MasterFeed) SpecificFeed1 {
+	defer track("GenerateSpecificFeed1Sequentially")()
 	feed := SpecificFeed1{}
+
+	file, err := os.Create("sequential1.csv")
+	defer file.Close()
+	checkErr(err)
+	w := csv.NewWriter(file)
+	defer w.Flush()
+
 	for _, row := range masterFeed.Rows {
 		r := SpecificFeed1Row{
 			Id:       fmt.Sprintf("online:es:ES:%d:%d", row.IdItem, row.IdOffer),
@@ -84,7 +106,16 @@ func GenerateSpecificFeed1Sequentially(masterFeed MasterFeed) SpecificFeed1 {
 			InPromo:  row.InPromo,
 		}
 		feed.AddRow(r)
-		time.Sleep(1 * time.Microsecond)
+
+		w.Write([]string{
+			r.Id,
+			fmt.Sprintf("%f", r.Price),
+			r.Title,
+			r.Category,
+			fmt.Sprintf("%v", r.InPromo),
+		})
+
+		time.Sleep(10 * time.Millisecond)
 	}
 
 	return feed
