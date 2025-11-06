@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
 )
 
-const n uint64 = 100000
+const n, max uint64 = 11, 100_000_000_000
 const timeout = 12 * time.Second
 
 func main() {
@@ -15,13 +16,15 @@ func main() {
 	// FindReverseNumberV2(n=100000) // 8,9s
 	// FindReverseNumberV3(n=100000) // 10.25s -> slower than V2
 
-	r1, err1 := execWithTimeout(n, FindReverseNumberV1)
-	r2, err2 := execWithTimeout(n, FindReverseNumberV2)
-	r3, err3 := execWithTimeout(n, FindReverseNumberV3)
+	// r1, err1 := execWithTimeout(n, FindReverseNumberV1)
+	// r2, err2 := execWithTimeout(n, FindReverseNumberV2)
+	// r3, err3 := execWithTimeout(n, FindReverseNumberV3)
+	r4, err4 := execWithTimeout(n, FindReverseNumberV4)
 
-	fmt.Printf("V1 finding n=%d: <%d, %v>\n", n, r1, err1)
-	fmt.Printf("V2 finding n=%d: <%d, %v>\n", n, r2, err2)
-	fmt.Printf("V3 finding n=%d: <%d, %v>\n", n, r3, err3)
+	// fmt.Printf("V1 finding n=%d: <%d, %v>\n", n, r1, err1)
+	// fmt.Printf("V2 finding n=%d: <%d, %v>\n", n, r2, err2)
+	// fmt.Printf("V3 finding n=%d: <%d, %v>\n", n, r3, err3)
+	fmt.Printf("V4 finding n=%d: <%d, %v>\n", n, r4, err4)
 
 	// Final version should do 100000000 in less than 12s
 }
@@ -118,4 +121,49 @@ func FindReverseNumberV3(n uint64) uint64 {
 		}
 		it++
 	}
+}
+
+func FindReverseNumberV4(n uint64) uint64 {
+	if n <= 10 {
+		return n - 1
+	}
+
+	var cumN, length uint64 = 10, 2
+	for cumN < n {
+		l := int(math.Ceil(float64(length)/2)) - 1
+		nL := 9 * uint64(math.Pow10(l))
+		if cumN+nL > n {
+			break
+		}
+		cumN += nL
+		length++
+	}
+	offset := n - cumN - 1
+	prefixL := int(math.Ceil(float64(length) / 2))
+	base := uint64(math.Pow10(prefixL - 1))
+	firstDigit := 1 + (offset / base)
+	restPadded := fmt.Sprintf("%0*d", prefixL-1, offset%base)
+	prefix := fmt.Sprintf("%d%s", firstDigit, restPadded)
+	fmt.Println(cumN, prefixL, base, firstDigit, restPadded, prefix)
+
+	reverse := func(s string) string {
+		r := []rune(s)
+		for i, j := 0, len(r)-1; i < len(r)/2; i, j = i+1, j-1 {
+			r[i], r[j] = r[j], r[i]
+		}
+		return string(r)
+	}
+
+	var palindrome string
+	if length%2 == 0 {
+		palindrome = prefix + reverse(prefix[:prefixL])
+	} else {
+		palindrome = prefix + reverse(prefix[:prefixL-1])
+	}
+
+	res, err := strconv.ParseUint(palindrome, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	return res
 }
