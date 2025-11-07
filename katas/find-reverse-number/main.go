@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const n, max uint64 = 11, 100_000_000_000
+const n, max uint64 = 43_668_150_168, 100_000_000_000
 const timeout = 12 * time.Second
 
 func main() {
@@ -16,14 +16,14 @@ func main() {
 	// FindReverseNumberV2(n=100000) // 8,9s
 	// FindReverseNumberV3(n=100000) // 10.25s -> slower than V2
 
-	// r1, err1 := execWithTimeout(n, FindReverseNumberV1)
-	// r2, err2 := execWithTimeout(n, FindReverseNumberV2)
-	// r3, err3 := execWithTimeout(n, FindReverseNumberV3)
+	r1, err1 := execWithTimeout(n, FindReverseNumberV1)
+	r2, err2 := execWithTimeout(n, FindReverseNumberV2)
+	r3, err3 := execWithTimeout(n, FindReverseNumberV3)
 	r4, err4 := execWithTimeout(n, FindReverseNumberV4)
 
-	// fmt.Printf("V1 finding n=%d: <%d, %v>\n", n, r1, err1)
-	// fmt.Printf("V2 finding n=%d: <%d, %v>\n", n, r2, err2)
-	// fmt.Printf("V3 finding n=%d: <%d, %v>\n", n, r3, err3)
+	fmt.Printf("V1 finding n=%d: <%d, %v>\n", n, r1, err1)
+	fmt.Printf("V2 finding n=%d: <%d, %v>\n", n, r2, err2)
+	fmt.Printf("V3 finding n=%d: <%d, %v>\n", n, r3, err3)
 	fmt.Printf("V4 finding n=%d: <%d, %v>\n", n, r4, err4)
 
 	// Final version should do 100000000 in less than 12s
@@ -132,7 +132,7 @@ func FindReverseNumberV4(n uint64) uint64 {
 	for cumN < n {
 		l := int(math.Ceil(float64(length)/2)) - 1
 		nL := 9 * uint64(math.Pow10(l))
-		if cumN+nL > n {
+		if cumN+nL >= n {
 			break
 		}
 		cumN += nL
@@ -142,9 +142,22 @@ func FindReverseNumberV4(n uint64) uint64 {
 	prefixL := int(math.Ceil(float64(length) / 2))
 	base := uint64(math.Pow10(prefixL - 1))
 	firstDigit := 1 + (offset / base)
-	restPadded := fmt.Sprintf("%0*d", prefixL-1, offset%base)
+	restPadded := fmt.Sprintf("%0*d", prefixL-1, offset%base)[:prefixL-1]
 	prefix := fmt.Sprintf("%d%s", firstDigit, restPadded)
-	fmt.Println(cumN, prefixL, base, firstDigit, restPadded, prefix)
+	fmt.Printf("\tn: %d - %T\n", n, n)
+	fmt.Printf("\tlength: %d - %T\n", length, length)
+	fmt.Printf("\tcumN: %d - %T\n", cumN, cumN)
+	fmt.Printf("\toffset: %d - %T\n", offset, offset)
+	fmt.Printf("\tprefixL: %d - %T\n", prefixL, prefixL)
+	fmt.Printf("\tbase: %d - %T\n", base, base)
+	fmt.Printf("\tfirstDigit: %d - %T\n", firstDigit, firstDigit)
+	fmt.Printf("\trestPadded: %s - %T\n", restPadded, restPadded)
+	fmt.Printf("\tprefix: %s - %T\n", prefix, prefix)
+
+	/**
+	 * Very weird: n=82719121181 says it should be 7768192943439678703,
+	 * but this code says it's 727191211818112191727
+	 */
 
 	reverse := func(s string) string {
 		r := []rune(s)
